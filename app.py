@@ -2,6 +2,7 @@ import json
 
 import requests
 from bs4 import BeautifulSoup
+from tqdm import tqdm
 
 BASE_URL = "https://huggingface.co/papers"
 
@@ -13,12 +14,29 @@ h3s = soup.find_all("h3")
 
 papers = []
 
-for h3 in h3s:
+
+def extract_abstraction(url):
+    page = requests.get(url)
+    soup = BeautifulSoup(page.content, "html.parser")
+    abstract = soup.find("div", {"class": "pb-8 pr-4 md:pr-16"}).text
+    if abstract.startswith("Abstract\n"):
+        abstract = abstract[len("Abstract\n") :]
+    abstract = abstract.replace("\n", " ")
+    return abstract
+
+
+for h3 in tqdm(h3s):
     a = h3.find("a")
     title = a.text
     link = a["href"]
+    url = f"https://huggingface.co{link}"
+    try:
+        abstract = extract_abstraction(url)
+    except Exception as e:
+        print(f"Failed to extract abstract for {url}: {e}")
+        abstract = ""
 
-    papers.append({"title": title, "url": link})
+    papers.append({"title": title, "url": url, "abstract": abstract})
 
 feed = {
     "version": "https://jsonfeed.org/version/1",
@@ -27,10 +45,10 @@ feed = {
     "feed_url": "https://example.org/feed.json",
     "items": [
         {
-            "id": "https://paperswithcode.com" + p["url"],
+            "id": p["url"],
             "title": p["title"].strip(),
-            "content_text": p["title"].strip(),
-            "url": "https://paperswithcode.com" + p["url"],
+            "content_text": p["abstract"].strip(),
+            "url": p["url"],
         }
         for p in papers
     ],
