@@ -49,16 +49,20 @@ feed = {
     "title": "Hugging Face Papers",
     "home_page_url": BASE_URL,
     "feed_url": "https://example.org/feed.json",
-    "items": [
-        {
-            "id": p["url"],
-            "title": p["title"].strip(),
-            "content_text": p["abstract"].strip(),
-            "url": p["url"],
-            **({"date_published": p["date_published"]} if p["date_published"] else {}),
-        }
-        for p in papers
-    ],
+    "items": sorted(
+        [
+            {
+                "id": p["url"],
+                "title": p["title"].strip(),
+                "content_text": p["abstract"].strip(),
+                "url": p["url"],
+                **({"date_published": p["date_published"]} if p["date_published"] else {}),
+            }
+            for p in papers
+        ],
+        key=lambda x: x.get("date_published", ""),
+        reverse=True,
+    ),
 }
 
 with open("feed.json", "w") as f:
